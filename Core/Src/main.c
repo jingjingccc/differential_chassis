@@ -91,12 +91,11 @@ int main(void)
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_TIM12_Init();
-  MX_TIM2_Init();
-  MX_TIM5_Init();
   MX_TIM23_Init();
+  MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
-//	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1 | TIM_CHANNEL_2);
   HAL_TIM_Base_Start_IT(&Encoder_Interrupt_timer);
   Control_Init();
   Rosserial_Init();
@@ -106,11 +105,17 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//  	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
+//  	HAL_GPIO_WritePin(MR_DIR_Pin, MR_DIR_GPIO_port, GPIO_PIN_SET);
+//  	__HAL_TIM_SET_COMPARE(&Wheel_R.pwm_timer, Wheel_R.pwm_timer_channel, 1000);
+//  	HAL_GPIO_WritePin(ML_DIR_Pin, ML_DIR_GPIO_port, GPIO_PIN_SET);
+//  	__HAL_TIM_SET_COMPARE(&Wheel_L.pwm_timer, Wheel_L.pwm_timer_channel, 1000);
 //  	Rosserial_Spin();
   }
   /* USER CODE END 3 */
@@ -185,27 +190,27 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			odom_count = 0;
 			odom_publish();
 		}
-//		Wheel_L.goal = 0.0;
-//		Wheel_R .goal = 0.0;
 
 		Rosserial_Spin();
+//		Wheel_L.goal = 0.0;
+//		Wheel_R.goal = 0.0;
 
-//		if (Rosserial_Checkconfigstate() == false)
-//		{
-//			linearvelocity_x = 0.0;
-//			linearvelocity_y = 0.0;
-//			angularvelocity = 0.0;
-//		}
+		if (Rosserial_Checkconfigstate() == false)
+		{
+			linearvelocity_x = 0.0;
+			linearvelocity_y = 0.0;
+			angularvelocity = 0.0;
+		}
 
 		Forward_Kinematics(linearvelocity_x, linearvelocity_y, angularvelocity);
 		PID_Controller(&Wheel_L);
 		PID_Controller(&Wheel_R);
-//		Inverse_Kinematics(&Wheel_L, &Wheel_R);
+		Inverse_Kinematics(&Wheel_L, &Wheel_R);
 
-		if(LED_state != 0)
-		{
-			LED_Control(LED_state);
-		}
+//		if(LED_state != 0)
+//		{
+//			LED_Control(LED_state);
+//		}
 	}
 }
 

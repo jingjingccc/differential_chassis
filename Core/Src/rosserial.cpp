@@ -20,7 +20,7 @@ ros::NodeHandle nh;
 geometry_msgs::Twist real_speed;
 ros::Subscriber<geometry_msgs::Twist> vel_sub("/cmd_vel", vel_callback);
 ros::Subscriber<std_msgs::UInt16> led_sub("/cmd_led", led_callback);
-ros::Publisher odom_pub("Toposition", &real_speed);
+ros::Publisher odom_pub("/actual_vel", &real_speed);
 double odom_vel[3];
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)

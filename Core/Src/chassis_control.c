@@ -26,6 +26,7 @@ PID_Control Wheel_R = {0};
 int i;
 double sssss[1000] = {0};
 
+
 /**
  * @ brief Include all the initial function
  * @ retval None
@@ -35,17 +36,15 @@ void Control_Init()
 	Hardware_Info_Init();
 	Control_Timer_Init();
 
-#ifdef G2_18V17
-	Motor_Driver_Init(&Wheel_L, M1_DIR_Pin, M1_DIR_GPIO_port, M1_Encoder_timer, M1_Encoder_timerchannel, M1_Encoder_dir, M1_PWM_timer, M1_PWM_timerchannel);
-	Motor_Driver_Init(&Wheel_R, M2_DIR_Pin, M2_DIR_GPIO_port, M2_Encoder_timer, M2_Encoder_timerchannel, M2_Encoder_dir, M2_PWM_timer, M2_PWM_timerchannel);
-#endif
+	Motor_Driver_Init(&Wheel_L, ML_DIR_Pin, ML_DIR_GPIO_port, ML_Encoder_timer, ML_Encoder_timerchannel, ML_Encoder_dir, ML_PWM_timer, ML_PWM_timerchannel);
+	Motor_Driver_Init(&Wheel_R, MR_DIR_Pin, MR_DIR_GPIO_port, MR_Encoder_timer, MR_Encoder_timerchannel, MR_Encoder_dir, MR_PWM_timer, MR_PWM_timerchannel);
 
-	Pid_Param_Init(&Wheel_L, M1_KP, M1_KI, M1_KD);
-	Pid_Param_Init(&Wheel_R, M2_KP, M2_KI, M2_KD);
+	Pid_Param_Init(&Wheel_L, ML_KP, ML_KI, ML_KD);
+	Pid_Param_Init(&Wheel_R, MR_KP, MR_KI, MR_KD);
 
 	i = 0;
 	limit_integral = 1.0;
-	pwm_arr = M1_PWM_timer.Init.Period;
+	pwm_arr = ML_PWM_timer.Init.Period;
 
 	// PCLK1_freq, APB1 timer frequency
 	int32_t PCLK1_freq = HAL_RCC_GetPCLK1Freq();
@@ -91,41 +90,7 @@ void Pid_Param_Init(PID_Control *Wheel_, double kp, double ki, double kd)
  * @ param Wheel_ the object declare for each motor (WheelA, WheelB, WheelC)
  * @ param all the other param is define in "control.h"
  * @ retval None
- * */
-#ifdef VNH5019
-void Motor_Driver_Init(PID_Control *Wheel_,
-		GPIO_TypeDef *INA_pin_type_, uint16_t INA_pin_num_,
-		GPIO_TypeDef *INB_pin_type_, uint16_t INB_pin_num_,
-		TIM_HandleTypeDef encoder_timer_, uint32_t encoder_timer_channel_, int encoder_dir_,
-		TIM_HandleTypeDef pwm_timer_, uint32_t pwm_timer_channel_)
-{
-	Wheel_->INA_pin_type = INA_pin_type_;
-	Wheel_->INA_pin_Num = INA_pin_num_;
-	Wheel_->INB_pin_type = INB_pin_type_;
-	Wheel_->INB_pin_Num = INB_pin_num_;
-	Wheel_->encoder_timer = encoder_timer_;
-	Wheel_->encoder_timer_channel = encoder_timer_channel_;
-	Wheel_->encoder_dir = encoder_dir_;
-	Wheel_->pwm_timer = pwm_timer_;
-	Wheel_->pwm_timer_channel = pwm_timer_channel_;
-}
-#endif
-#ifdef DRV8874
-void Motor_Driver_Init(PID_Control *Wheel_,
-		GPIO_TypeDef *PHASE_pin_type_, uint16_t PHASE_pin_num_,
-		TIM_HandleTypeDef encoder_timer_, uint32_t encoder_timer_channel_, int encoder_dir_,
-		TIM_HandleTypeDef pwm_timer_, uint32_t pwm_timer_channel_)
-{
-	Wheel_->PHASE_pin_type = PHASE_pin_type_;
-	Wheel_->PHASE_pin_Num = PHASE_pin_num_;
-	Wheel_->encoder_timer = encoder_timer_;
-	Wheel_->encoder_timer_channel = encoder_timer_channel_;
-	Wheel_->encoder_dir = encoder_dir_;
-	Wheel_->pwm_timer = pwm_timer_;
-	Wheel_->pwm_timer_channel = pwm_timer_channel_;
-}
-#endif
-#ifdef G2_18V17
+**/
 void Motor_Driver_Init(PID_Control *Wheel_,
 		GPIO_TypeDef *DIR_pin_type, uint16_t DIR_pin_num_,
 		TIM_HandleTypeDef encoder_timer_, uint32_t encoder_timer_channel_, int encoder_dir_,
@@ -139,7 +104,6 @@ void Motor_Driver_Init(PID_Control *Wheel_,
 	Wheel_->pwm_timer = pwm_timer_;
 	Wheel_->pwm_timer_channel = pwm_timer_channel_;
 }
-#endif
 
 
 /**
@@ -149,10 +113,10 @@ void Motor_Driver_Init(PID_Control *Wheel_,
  * */
 void Control_Timer_Init()
 {
-	HAL_TIM_Encoder_Start(&M1_Encoder_timer, M1_Encoder_timerchannel);
-	HAL_TIM_PWM_Start(&M1_PWM_timer, M1_PWM_timerchannel);
-	HAL_TIM_Encoder_Start(&M2_Encoder_timer, M2_Encoder_timerchannel);
-	HAL_TIM_PWM_Start(&M2_PWM_timer, M2_PWM_timerchannel);
+	HAL_TIM_Encoder_Start(&ML_Encoder_timer, ML_Encoder_timerchannel);
+	HAL_TIM_PWM_Start(&ML_PWM_timer, ML_PWM_timerchannel);
+	HAL_TIM_Encoder_Start(&MR_Encoder_timer, MR_Encoder_timerchannel);
+	HAL_TIM_PWM_Start(&MR_PWM_timer, MR_PWM_timerchannel);
 }
 
 
@@ -162,10 +126,9 @@ void Control_Timer_Init()
  * */
 void Hardware_Info_Init()
 {
-
-	radius_error_l = 1.0;
-	radius_error_r = 1.0;
-	radius_error_chassis = 1.0;
+	radius_error_l = 1.025;
+	radius_error_r = 1.025;
+	radius_error_chassis = 0.98;
 }
 
 
@@ -197,7 +160,6 @@ void PID_Controller(PID_Control *Wheel_)
 	Wheel_->duty = (Wheel_->duty > 1)? 1 : Wheel_->duty;
 	Wheel_->duty = (Wheel_->duty < -1)? -1 : Wheel_->duty;
 
-#ifdef G2_18V17
 	if(Wheel_->duty >= 0)
 	{
 		HAL_GPIO_WritePin(Wheel_->DIR_pin_type, Wheel_->DIR_pin_Num, GPIO_PIN_RESET);
@@ -208,34 +170,6 @@ void PID_Controller(PID_Control *Wheel_)
 		HAL_GPIO_WritePin(Wheel_->DIR_pin_type, Wheel_->DIR_pin_Num, GPIO_PIN_SET);
 		__HAL_TIM_SET_COMPARE(&(Wheel_->pwm_timer), Wheel_->pwm_timer_channel, fabs(Wheel_->duty * pwm_arr));
 	}
-#endif
-#ifdef VNH5019
-	if(Wheel_->duty >= 0)
-	{
-		HAL_GPIO_WritePin(Wheel_->INA_pin_type, Wheel_->INA_pin_Num, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(Wheel_->INB_pin_type, Wheel_->INB_pin_Num, GPIO_PIN_RESET);
-		__HAL_TIM_SET_COMPARE(&(Wheel_->pwm_timer), Wheel_->pwm_timer_channel, fabs(Wheel_->duty * pwm_arr));
-	}
-	else
-	{
-		HAL_GPIO_WritePin(Wheel_->INA_pin_type, Wheel_->INA_pin_Num, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(Wheel_->INB_pin_type, Wheel_->INB_pin_Num, GPIO_PIN_SET);
-		__HAL_TIM_SET_COMPARE(&(Wheel_->pwm_timer), Wheel_->pwm_timer_channel, fabs(Wheel_->duty * pwm_arr));
-	}
-#endif
-#ifdef DRV8874
-	if(Wheel_->duty >= 0)
-	{
-		HAL_GPIO_WritePin(Wheel_->PHASE_pin_type, Wheel_->PHASE_pin_Num, GPIO_PIN_RESET);
-		__HAL_TIM_SET_COMPARE(&(Wheel_->pwm_timer), Wheel_->pwm_timer_channel, fabs(Wheel_->duty * pwm_arr));
-	}
-	else
-	{
-		HAL_GPIO_WritePin(Wheel_->PHASE_pin_type, Wheel_->PHASE_pin_Num, GPIO_PIN_SET);
-		__HAL_TIM_SET_COMPARE(&(Wheel_->pwm_timer), Wheel_->pwm_timer_channel, fabs(Wheel_->duty * pwm_arr));
-	}
-#endif
-
 	Wheel_->rps_before = Wheel_->rps;
 }
 
@@ -255,8 +189,8 @@ void PID_Controller(PID_Control *Wheel_)
  * */
 void Forward_Kinematics(double x, double y, double w)
 {
-	double omega_left = (x + w * chassis_radius * radius_error_chassis) / (wheel_radius * radius_error_l);
-	double omega_right = (x - w * chassis_radius * radius_error_chassis) / (wheel_radius * radius_error_r);
+	double omega_left = (x - w * chassis_radius * radius_error_chassis) / (wheel_radius * radius_error_l);
+	double omega_right = (-x - w * chassis_radius * radius_error_chassis) / (wheel_radius * radius_error_r);
 
 	Wheel_L.goal = omega_left / (2 * M_PI);
 	Wheel_R.goal = omega_right / (2 * M_PI);
@@ -268,9 +202,9 @@ void Inverse_Kinematics(PID_Control *WheelL_, PID_Control *WheelR_)
 	double vl = WheelL_->rps * (2 * M_PI) * (wheel_radius * radius_error_l);
 	double vr = WheelR_->rps * (2 * M_PI) * (wheel_radius * radius_error_r);
 
-	double Vx = (vl + vr) / 2;
+	double Vx = (vl - vr) / 2;
 	double Vy = 0;
-	double Vw = (vr - vl) / (chassis_radius * radius_error_chassis);
+	double Vw = -(vr + vl) / 2 /  (chassis_radius * radius_error_chassis);
 
 	odom_vel[0] = Vx;
 	odom_vel[1] = Vy;
